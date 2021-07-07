@@ -12,23 +12,60 @@ class Product {
     }
 }
 
-class ShoppingCart {
-    item = [];
+class Component {
+    constructor(renderHookId) {
+        this.hoodId = renderHookId;
+    }
+    
+    createRootElement(tag, cssClasses, attributes) {
+        const rootElement = document.createElement(tag);
+        if (cssClasses) {
+            rootElement.className = cssClasses;
+        }
+        if (attributes && attributes.length > 0) {
+            for (const attr of attributes) {
+                rootElement.setAttribute(attrName, attrValue);
+            }
+        }
+        document.getElementById(this.hoodId).append(rootElement);
+        return rootElement;
+    }
+}
+
+class ShoppingCart extends Component {
+    items = [];
+
+    set cartItems(value) {
+        this.items = value;
+        this.totalOutput.innerHTML = `<h2>Total: \$${this.totalAmount}<h2>`;
+    }
+
+    get totalAmount() {
+        console.log(this.items)
+
+        const sum = this.items.reduce( (prevValue, curItem) => 
+            prevValue + curItem.price
+        , 0);
+        return sum;
+    }
+
+    constructor(renderHookId) {
+        super(renderHookId);
+    }
 
     addProduct(product) {
-        this.item.push(product);
-        this.totalOutput.innerHTML = `<h2>Total: \$${1}<h2>`;
+        const updatedItems = [...this.items];
+        updatedItems.push(product);
+        this.cartItems = updatedItems;
     }
 
     render() {
-        const cartEl = document.createElement('section');
-        cartEl.className = 'cart';
+        const cartEl = this.createRootElement('section', 'cart');
         cartEl.innerHTML = `
             <h2>Total: \$${0}<h2>
             <button>Order Now!</button>
         `;
         this.totalOutput = cartEl.querySelector('h2');
-        return cartEl;
     }
 }
 
@@ -67,14 +104,14 @@ class ProductList {
         new Product(
             'A Pillow', 
             'https://media.istockphoto.com/photos/pillow-isolated-on-white-background-picture-id899226398?k=6&m=899226398&s=612x612&w=0&h=JtsWJqDPEQGmJnqWCkgUcHGHhCmjId1OkELo-uVeY-o=',
+            'A soft pillow!',
             19.99,
-            'A soft pillow!'
         ),
         new Product(
             'A Carpet', 
             'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Wollteppich_1.jpg/1200px-Wollteppich_1.jpg',
+            'A carpet which you might like - or not.',
             89.99,
-            'A carpet which you might like - or not.'
         ),
         // {
         //     title: 'A Pillow',
@@ -109,12 +146,11 @@ class Shop {
     render() {
         const renderHook = document.getElementById('app');
 
-        this.cart = new ShoppingCart();
-        const cartEl = this.cart.render();
+        this.cart = new ShoppingCart('app');
+        this.cart.render();
         const productList = new ProductList();
         const prodListEl = productList.render();
        
-        renderHook.append(cartEl); 
         renderHook.append(prodListEl);
     }
 }
@@ -129,7 +165,6 @@ class App {
     }
 
     static addProductToCart(product) {
-        console.log(this.cart, product)
         this.cart.addProduct(product);
     }
 }
