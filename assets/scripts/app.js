@@ -12,10 +12,22 @@ class Product {
     }
 }
 
-class Component {
-    constructor(renderHookId) {
-        this.hoodId = renderHookId;
+class ElementAttribute {
+    constructor(attrName, attrValue) {
+      this.name = attrName;
+      this.value = attrValue;
     }
+  }
+
+class Component {
+    constructor(renderHookId, shouldRender = true) {
+        this.hoodId = renderHookId;
+        if (shouldRender) {
+            this.render();
+        }
+    }
+
+    render() {}
     
     createRootElement(tag, cssClasses, attributes) {
         const rootElement = document.createElement(tag);
@@ -24,7 +36,7 @@ class Component {
         }
         if (attributes && attributes.length > 0) {
             for (const attr of attributes) {
-                rootElement.setAttribute(attrName, attrValue);
+                rootElement.setAttribute(attr.name, attr.value);
             }
         }
         document.getElementById(this.hoodId).append(rootElement);
@@ -50,7 +62,12 @@ class ShoppingCart extends Component {
     }
 
     constructor(renderHookId) {
-        super(renderHookId);
+        super(renderHookId, false);
+        this.orderProducts = () => {
+            console.log('Ordering..');
+            console.log(this.items);
+        }
+        this.render();
     }
 
     addProduct(product) {
@@ -65,13 +82,18 @@ class ShoppingCart extends Component {
             <h2>Total: \$${0}<h2>
             <button>Order Now!</button>
         `;
+
+        const orderButton = cartEl.querySelector('button');
+        orderButton.addEventListener('click', this.orderProducts);
         this.totalOutput = cartEl.querySelector('h2');
     }
 }
 
-class ProductItem {
-    constructor(product) {
+class ProductItem extends Component {
+    constructor(product, renderHookId) {
+        super(renderHookId, false);
         this.product = product;
+        this.render();
     }
 
     addToCart() {
@@ -79,8 +101,7 @@ class ProductItem {
     }
 
     render() {
-        const prodEl = document.createElement('li');
-        prodEl.className = 'product-item';
+        const prodEl = this.createRootElement('li', 'product-item');
         prodEl.innerHTML = `
             <div>
                 <img src="${this.product.imageUrl}" alt="${this.product.title}" >
@@ -95,63 +116,58 @@ class ProductItem {
 
         const addToCartButton = prodEl.querySelector('button');
         addToCartButton.addEventListener('click', this.addToCart.bind(this));
-        return prodEl;
     }
 }
 
-class ProductList {
-    products = [
-        new Product(
-            'A Pillow', 
-            'https://media.istockphoto.com/photos/pillow-isolated-on-white-background-picture-id899226398?k=6&m=899226398&s=612x612&w=0&h=JtsWJqDPEQGmJnqWCkgUcHGHhCmjId1OkELo-uVeY-o=',
-            'A soft pillow!',
-            19.99,
-        ),
-        new Product(
-            'A Carpet', 
-            'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Wollteppich_1.jpg/1200px-Wollteppich_1.jpg',
-            'A carpet which you might like - or not.',
-            89.99,
-        ),
-        // {
-        //     title: 'A Pillow',
-        //     imageUrl: 'https://media.istockphoto.com/photos/pillow-isolated-on-white-background-picture-id899226398?k=6&m=899226398&s=612x612&w=0&h=JtsWJqDPEQGmJnqWCkgUcHGHhCmjId1OkELo-uVeY-o=',
-        //     price: 19.99,
-        //     description: 'A soft pillow!'
-        // },
-        // {
-        //     title: 'A Carpet',
-        //     imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Wollteppich_1.jpg/1200px-Wollteppich_1.jpg',
-        //     price: 89.99,
-        //     description: 'A carpet which you might like - or not.'
-        // },
-    ];
-    
-    constructor() {}
+class ProductList extends Component {
+    products = [];
+
+    constructor(renderHookId) {
+        super(renderHookId);
+        this.fetchProducts();
+    }
+
+    fetchProducts() {
+        this.products = [
+            new Product(
+                'A Pillow', 
+                'https://media.istockphoto.com/photos/pillow-isolated-on-white-background-picture-id899226398?k=6&m=899226398&s=612x612&w=0&h=JtsWJqDPEQGmJnqWCkgUcHGHhCmjId1OkELo-uVeY-o=',
+                'A soft pillow!',
+                19.99,
+            ),
+            new Product(
+                'A Carpet', 
+                'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Wollteppich_1.jpg/1200px-Wollteppich_1.jpg',
+                'A carpet which you might like - or not.',
+                89.99,
+            ),
+        ];
+
+        this.renderProducts();
+    }
+
+    renderProducts() {
+        for (const prod of this.products) {
+            new ProductItem(prod, 'prod-list');
+        }
+    }
 
     render() {
-        const prodList = document.createElement('ul'); 
-        prodList.className = 'product-list';
-        for (const prod of this.products) {
-            const productItem = new ProductItem(prod);
-            const prodEl = productItem.render();
-            prodList.append(prodEl);
+        this.prodList = this.createRootElement('ul', 'product-list', [new ElementAttribute('id', 'prod-list')]);
+        if (this.products && this.products.length > 0) {
+            this.renderProducts();
         }
-
-        return prodList;
     }
 }
 
 class Shop {
-    render() {
-        const renderHook = document.getElementById('app');
+    constructor() {
+        this.render();
+    }
 
+    render() {
         this.cart = new ShoppingCart('app');
-        this.cart.render();
-        const productList = new ProductList();
-        const prodListEl = productList.render();
-       
-        renderHook.append(prodListEl);
+        new ProductList('app');
     }
 }
 
@@ -160,7 +176,6 @@ class App {
 
     static init() {
         const shop = new Shop();
-        shop.render();
         this.cart = shop.cart;
     }
 
